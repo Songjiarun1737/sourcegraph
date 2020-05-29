@@ -3,6 +3,7 @@ package migrate
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/serialization"
@@ -33,6 +34,8 @@ func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializ
 		return err
 	}
 
+	fmt.Printf("THIS IS THE VERSIOHNNNN    %s\n", version)
+
 	// TODO - should copy file, replace, etc
 
 	found := false
@@ -46,6 +49,7 @@ func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializ
 		}
 
 		if err := migration.MigrationFunc(ctx, db, serializer); err != nil {
+			fmt.Printf("OK starting from %s\n", migration.Version)
 			return err
 		}
 	}
@@ -63,8 +67,13 @@ func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializ
 
 func getVersion(ctx context.Context, db *sqlx.DB) (version string, _ error) {
 	if err := db.QueryRowContext(ctx, "SELECT version FROM schema_version LIMIT 1").Scan(&version); err != nil {
+		// TODO - better matching
+		if strings.Contains(err.Error(), "no such table: schema_version") {
+			return UnknownSchemaVersion, nil
+		}
+
 		return "", err
 	}
 
-	return UnknownSchemaVersion, nil
+	return "", fmt.Errorf("LKJJLK")
 }

@@ -71,7 +71,7 @@ func NewWriter(filename string) (_ persistence.Writer, err error) {
 		tx:                    tx,
 		serializer:            jsonserializer.New(),
 		scheamVersionInserter: sqliteutil.NewBatchInserter(tx, "schema_version", "version"),
-		metaInserter:          sqliteutil.NewBatchInserter(tx, "meta", "numResultChunks"),
+		metaInserter:          sqliteutil.NewBatchInserter(tx, "meta", "num_result_chunks"),
 		documentInserter:      sqliteutil.NewBatchInserter(tx, "documents", "path", "data"),
 		resultChunkInserter:   sqliteutil.NewBatchInserter(tx, "result_chunks", "id", "data"),
 		definitionInserter:    sqliteutil.NewBatchInserter(tx, "definitions", "scheme", "identifier", "data"),
@@ -79,11 +79,11 @@ func NewWriter(filename string) (_ persistence.Writer, err error) {
 	}, nil
 }
 
-func (w *sqliteWriter) WriteMeta(ctx context.Context, numResultChunks int) error {
+func (w *sqliteWriter) WriteMeta(ctx context.Context, metaData types.MetaData) error {
 	if err := w.scheamVersionInserter.Insert(ctx, migrate.CurrentSchemaVersion); err != nil {
 		return errors.Wrap(err, "scheamVersionInserter.Insert")
 	}
-	if err := w.metaInserter.Insert(ctx, numResultChunks); err != nil {
+	if err := w.metaInserter.Insert(ctx, metaData.NumResultChunks); err != nil {
 		return errors.Wrap(err, "metaInserter.Insert")
 	}
 	return nil

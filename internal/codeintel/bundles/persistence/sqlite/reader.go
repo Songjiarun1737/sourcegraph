@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/keegancsmith/sqlf"
@@ -11,6 +12,7 @@ import (
 	persistence "github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence"
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/serialization"
 	jsonserializer "github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/serialization/json"
+	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/migrate"
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/types"
 )
 
@@ -29,24 +31,34 @@ func NewReader(filename string) (persistence.Reader, error) {
 		return nil, err
 	}
 
+	serializer := jsonserializer.New()
+
+	if err := migrate.Migrate(context.Background(), db, serializer); err != nil {
+		fmt.Printf("Cannot do it mannnnnnn\n")
+		return nil, err
+	}
+
 	return &sqliteReader{
 		db:         db,
-		serializer: jsonserializer.New(),
+		serializer: serializer,
 	}, nil
 }
 
-func (r *sqliteReader) ReadMeta(ctx context.Context) (lsifVersion string, sourcegraphVersion string, numResultChunks int, _ error) {
-	query := `SELECT schema_version, num_result_chunks FROM meta LIMIT 1`
+func (r *sqliteReader) ReadMeta(ctx context.Context) (types.MetaData, error) {
+	query := `SELECT num_result_chunks FROM meta LIMIT 1`
 
-	if err := r.queryRow(ctx, sqlf.Sprintf(query)).Scan(&lsifVersion, &sourcegraphVersion, &numResultChunks); err != nil {
+	numResultChunks, err := scanInt(r.queryRow(ctx, sqlf.Sprintf(query)))
+	if err != nil {
 		if err == sql.ErrNoRows {
-			return "", "", 0, ErrNoMetadata
+			return types.MetaData{}, ErrNoMetadata
 		}
 
-		return "", "", 0, err
+		return types.MetaData{}, err
 	}
 
-	return lsifVersion, sourcegraphVersion, numResultChunks, nil
+	return types.MetaData{
+		NumResultChunks: numResultChunks,
+	}, nil
 }
 
 func (r *sqliteReader) ReadDocument(ctx context.Context, path string) (types.DocumentData, bool, error) {
@@ -141,6 +153,12 @@ func (r *sqliteReader) queryRow(ctx context.Context, query *sqlf.Query) *sql.Row
 
 // scanBytes populates a byte slice value from the given scanner.
 func scanBytes(scanner *sql.Row) (value []byte, err error) {
+	err = scanner.Scan(&value)
+	return value, err
+}
+
+// scanInt populates an int value from the given scanner.
+func scanInt(scanner *sql.Row) (value int, err error) {
 	err = scanner.Scan(&value)
 	return value, err
 }

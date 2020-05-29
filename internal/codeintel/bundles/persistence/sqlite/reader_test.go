@@ -11,19 +11,13 @@ import (
 )
 
 func TestReadMeta(t *testing.T) {
-	lsifVersion, sourcegraphVersion, numResultChunks, err := testReader(t).ReadMeta(context.Background())
+	metaData, err := testReader(t).ReadMeta(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error reading meta: %s", err)
 	}
 
-	if lsifVersion != "0.4.3" {
-		t.Errorf("unexpected lsifVersion. want=%s have=%s", "0.4.3", lsifVersion)
-	}
-	if sourcegraphVersion != "0.1.0" {
-		t.Errorf("unexpected sourcegraphVersion. want=%s have=%s", "0.1.0", sourcegraphVersion)
-	}
-	if numResultChunks != 4 {
-		t.Errorf("unexpected numResultChunks. want=%d have=%d", 4, numResultChunks)
+	if metaData.NumResultChunks != 4 {
+		t.Errorf("unexpected numResultChunks. want=%d have=%d", 4, metaData.NumResultChunks)
 	}
 }
 
