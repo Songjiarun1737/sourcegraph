@@ -19,20 +19,12 @@ CREATE TABLE "definitions" (
     "id" integer PRIMARY KEY NOT NULL,
     "scheme" text NOT NULL,
     "identifier" text NOT NULL,
-    "documentPath" text NOT NULL,
-    "startLine" integer NOT NULL,
-    "endLine" integer NOT NULL,
-    "startCharacter" integer NOT NULL,
-    "endCharacter" integer NOT NULL
+    "data" blob NOT NULL
 );
 
 CREATE TABLE "references" (
     "id" integer PRIMARY KEY NOT NULL,
     "scheme" text NOT NULL,
     "identifier" text NOT NULL,
-    "documentPath" text NOT NULL,
-    "startLine" integer NOT NULL,
-    "endLine" integer NOT NULL,
-    "startCharacter" integer NOT NULL,
-    "endCharacter" integer NOT NULL
+    "data" blob NOT NULL
 );

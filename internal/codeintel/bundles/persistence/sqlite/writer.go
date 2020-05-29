@@ -56,7 +56,7 @@ func NewWriter(filename string) (_ persistence.Writer, err error) {
 	metaColumns := []string{"lsifVersion", "sourcegraphVersion", "numResultChunks"}
 	documentsColumns := []string{"path", "data"}
 	resultChunksColumns := []string{"id", "data"}
-	definitionsReferencesColumns := []string{"scheme", "identifier", "documentPath", "startLine", "startCharacter", "endLine", "endCharacter"}
+	definitionsReferencesColumns := []string{"scheme", "identifier", "data"}
 
 	return &sqliteWriter{
 		db:                  db,
@@ -107,10 +107,13 @@ func (w *sqliteWriter) WriteResultChunks(ctx context.Context, resultChunks map[i
 
 func (w *sqliteWriter) WriteDefinitions(ctx context.Context, monikerLocations []types.MonikerLocations) error {
 	for _, ml := range monikerLocations {
-		for _, l := range ml.Locations {
-			if err := w.definitionInserter.Insert(ctx, ml.Scheme, ml.Identifier, l.URI, l.StartLine, l.StartCharacter, l.EndLine, l.EndCharacter); err != nil {
-				return errors.Wrap(err, "definitionInserter.Insert")
-			}
+		ser, err := w.serializer.MarshalLocations(ml.Locations)
+		if err != nil {
+			return errors.Wrap(err, "serializer.MarshalLocations")
+		}
+
+		if err := w.definitionInserter.Insert(ctx, ml.Scheme, ml.Identifier, ser); err != nil {
+			return errors.Wrap(err, "definitionInserter.Insert")
 		}
 	}
 	return nil
@@ -118,10 +121,13 @@ func (w *sqliteWriter) WriteDefinitions(ctx context.Context, monikerLocations []
 
 func (w *sqliteWriter) WriteReferences(ctx context.Context, monikerLocations []types.MonikerLocations) error {
 	for _, ml := range monikerLocations {
-		for _, l := range ml.Locations {
-			if err := w.referenceInserter.Insert(ctx, ml.Scheme, ml.Identifier, l.URI, l.StartLine, l.StartCharacter, l.EndLine, l.EndCharacter); err != nil {
-				return errors.Wrap(err, "referenceInserter.Insert")
-			}
+		ser, err := w.serializer.MarshalLocations(ml.Locations)
+		if err != nil {
+			return errors.Wrap(err, "serializer.MarshalLocations")
+		}
+
+		if err := w.referenceInserter.Insert(ctx, ml.Scheme, ml.Identifier, ser); err != nil {
+			return errors.Wrap(err, "referenceInserter.Insert")
 		}
 	}
 	return nil
