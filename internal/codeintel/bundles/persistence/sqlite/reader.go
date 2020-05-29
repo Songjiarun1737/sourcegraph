@@ -36,7 +36,7 @@ func NewReader(filename string) (persistence.Reader, error) {
 }
 
 func (r *sqliteReader) ReadMeta(ctx context.Context) (lsifVersion string, sourcegraphVersion string, numResultChunks int, _ error) {
-	query := `SELECT lsifVersion, sourcegraphVersion, numResultChunks FROM meta LIMIT 1`
+	query := `SELECT schema_version, num_result_chunks FROM meta LIMIT 1`
 
 	if err := r.queryRow(ctx, sqlf.Sprintf(query)).Scan(&lsifVersion, &sourcegraphVersion, &numResultChunks); err != nil {
 		if err == sql.ErrNoRows {
@@ -67,7 +67,7 @@ func (r *sqliteReader) ReadDocument(ctx context.Context, path string) (types.Doc
 }
 
 func (r *sqliteReader) ReadResultChunk(ctx context.Context, id int) (types.ResultChunkData, bool, error) {
-	query := `SELECT data FROM resultChunks WHERE id = %s LIMIT 1`
+	query := `SELECT data FROM result_chunks WHERE id = %s LIMIT 1`
 
 	data, err := scanBytes(r.queryRow(ctx, sqlf.Sprintf(query, id)))
 	if err != nil {
@@ -108,8 +108,13 @@ func (r *sqliteReader) readDefinitionReferences(ctx context.Context, tableName, 
 		return nil, 0, pkgerrors.Wrap(err, "serializer.UnmarshalLocations")
 	}
 
+	//
+	// TODO - refactor this all nice
 	slicedLocations := locations
 	if skip != 0 && take != 0 {
+		if skip >= len(locations) {
+			skip = len(locations)
+		}
 		max := skip + take
 		if max > len(locations) {
 			max = len(locations)
@@ -126,12 +131,12 @@ func (r *sqliteReader) Close() error {
 
 // query performs QueryContext on the underlying connection.
 func (r *sqliteReader) query(ctx context.Context, query *sqlf.Query) (*sql.Rows, error) {
-	return r.db.QueryContext(ctx, query.Query(sqlf.PostgresBindVar), query.Args()...)
+	return r.db.QueryContext(ctx, query.Query(sqlf.SimpleBindVar), query.Args()...)
 }
 
 // queryRow performs QueryRowContext on the underlying connection.
 func (r *sqliteReader) queryRow(ctx context.Context, query *sqlf.Query) *sql.Row {
-	return r.db.QueryRowContext(ctx, query.Query(sqlf.PostgresBindVar), query.Args()...)
+	return r.db.QueryRowContext(ctx, query.Query(sqlf.SimpleBindVar), query.Args()...)
 }
 
 // scanBytes populates a byte slice value from the given scanner.
