@@ -33,7 +33,7 @@ type DefinitionReferenceRow struct {
 }
 
 func migrateDefinitionReferences(ctx context.Context, db *sqlx.DB, serializer serialization.Serializer, tableName string) error {
-	rows, err := scanDefinitionReferenceRows(db.QueryContext(ctx, `SELECT * FROM "`+tableName+`"`))
+	rows, err := scanDefinitionReferenceRows(db.QueryContext(ctx, `SELECT scheme, identifier, documentPath, startLine, startCharacter, endLine, endCharacter FROM "`+tableName+`"`))
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func migrateDefinitionReferences(ctx context.Context, db *sqlx.DB, serializer se
 		return err
 	}
 
-	inserter := sqliteutil.NewBatchInserter(db, "definitions", "scheme", "identifier", "data")
+	inserter := sqliteutil.NewBatchInserter(db, "t_"+tableName, "scheme", "identifier", "data")
 
 	for _, row := range groupDefinitionReferenceRows(rows) {
 		data, err := serializer.MarshalLocations(row.Locations)
@@ -59,11 +59,11 @@ func migrateDefinitionReferences(ctx context.Context, db *sqlx.DB, serializer se
 		return err
 	}
 
-	if _, err := db.ExecContext(ctx, `DELETE TABLE "`+tableName+`"`); err != nil {
+	if _, err := db.ExecContext(ctx, `DROP TABLE "`+tableName+`"`); err != nil {
 		return err
 	}
 
-	if _, err := db.ExecContext(ctx, `RENAME TABLE "t_`+tableName+`" TO "`+tableName+`"`); err != nil {
+	if _, err := db.ExecContext(ctx, `ALTER TABLE "t_`+tableName+`" RENAME TO "`+tableName+`"`); err != nil {
 		return err
 	}
 

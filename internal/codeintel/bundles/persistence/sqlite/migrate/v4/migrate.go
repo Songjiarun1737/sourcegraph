@@ -8,13 +8,16 @@ import (
 )
 
 func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializer) error {
-	if _, err := db.ExecContext(ctx, `ALTER TABLE meta DROP COLUMN lsifVersion`); err != nil {
+	if _, err := db.ExecContext(ctx, `CREATE TABLE t_meta (num_result_chunks int NOT NULL)`); err != nil {
 		return err
 	}
-	if _, err := db.ExecContext(ctx, `ALTER TABLE meta DROP COLUMN sourcegraphVersion`); err != nil {
+	if _, err := db.ExecContext(ctx, `INSERT INTO t_meta (num_result_chunks) SELECT numResultChunks FROM meta`); err != nil {
 		return err
 	}
-	if _, err := db.ExecContext(ctx, `ALTER TABLE meta RENAME COLUMN numResultChunks TO num_result_chunks`); err != nil {
+	if _, err := db.ExecContext(ctx, `DROP TABLE meta`); err != nil {
+		return err
+	}
+	if _, err := db.ExecContext(ctx, `ALTER TABLE t_meta RENAME TO meta`); err != nil {
 		return err
 	}
 

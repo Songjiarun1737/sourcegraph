@@ -8,6 +8,6 @@ import (
 )
 
 func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializer) error {
-	_, err := db.ExecContext(ctx, `RENAME TABLE resultChunks TO result_chunks`)
+	_, err := db.ExecContext(ctx, `ALTER TABLE resultChunks RENAME TO result_chunks`)
 	return err
 }

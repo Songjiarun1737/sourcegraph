@@ -34,8 +34,6 @@ func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializ
 		return err
 	}
 
-	fmt.Printf("THIS IS THE VERSIOHNNNN    %s\n", version)
-
 	// TODO - should copy file, replace, etc
 
 	found := false
@@ -49,7 +47,6 @@ func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializ
 		}
 
 		if err := migration.MigrationFunc(ctx, db, serializer); err != nil {
-			fmt.Printf("OK starting from %s\n", migration.Version)
 			return err
 		}
 	}
@@ -75,5 +72,5 @@ func getVersion(ctx context.Context, db *sqlx.DB) (version string, _ error) {
 		return "", err
 	}
 
-	return "", fmt.Errorf("LKJJLK")
+	return version, nil
 }
