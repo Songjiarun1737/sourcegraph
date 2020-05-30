@@ -32,6 +32,7 @@ var CurrentSchemaVersion = migrations[len(migrations)-1].Version
 func Migrate(ctx context.Context, s *store.Store, serializer serialization.Serializer) error {
 	version, err := getVersion(ctx, s)
 	if err != nil {
+		fmt.Printf("WAAS BAD?\n")
 		return err
 	}
 
@@ -50,6 +51,7 @@ func Migrate(ctx context.Context, s *store.Store, serializer serialization.Seria
 		}
 
 		if err := migration.MigrationFunc(ctx, s, serializer); err != nil {
+			fmt.Printf("FAILY WHALEY %v\n", migration.Version)
 			return err
 		}
 	}
@@ -63,9 +65,11 @@ func Migrate(ctx context.Context, s *store.Store, serializer serialization.Seria
 
 func getVersion(ctx context.Context, s *store.Store) (string, error) {
 	version, exists, err := store.ScanFirstString(s.Query(ctx, sqlf.Sprintf("SELECT version FROM schema_version LIMIT 1")))
+	fmt.Printf("ERR: %v\n", err)
 	if err != nil {
 		// TODO - better matching
 		if strings.Contains(err.Error(), "no such table: schema_version") {
+			fmt.Printf("UHHHOK\n")
 			return UnknownSchemaVersion, nil
 		}
 

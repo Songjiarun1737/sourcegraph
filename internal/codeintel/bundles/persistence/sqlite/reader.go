@@ -44,7 +44,7 @@ func NewReader(filename string) (persistence.Reader, error) {
 	return &sqliteReader{
 		s:          s,
 		serializer: serializer,
-		close:      func() error { return db.Close() },
+		close:      db.Close,
 	}, nil
 }
 

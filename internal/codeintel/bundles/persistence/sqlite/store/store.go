@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/keegancsmith/sqlf"
@@ -30,8 +31,10 @@ func (s *Store) Query(ctx context.Context, query *sqlf.Query) (*sql.Rows, error)
 
 func (s *Store) ExecAll(ctx context.Context, queries ...*sqlf.Query) error {
 	for _, query := range queries {
+		fmt.Printf("DO QUERY %s\n", query)
 		// TODO - need to dispose of rows?
 		if _, err := s.Query(ctx, query); err != nil {
+			fmt.Printf("NOP#: %v\n", err)
 			return err
 		}
 	}
