@@ -79,10 +79,6 @@ type CreateChangesetsArgs struct {
 	}
 }
 
-type PublishCampaignArgs struct {
-	Campaign graphql.ID
-}
-
 type PublishChangesetArgs struct {
 	Patch graphql.ID
 }
@@ -104,7 +100,6 @@ type CampaignsResolver interface {
 	DeleteCampaign(ctx context.Context, args *DeleteCampaignArgs) (*EmptyResponse, error)
 	RetryCampaign(ctx context.Context, args *RetryCampaignArgs) (CampaignResolver, error)
 	CloseCampaign(ctx context.Context, args *CloseCampaignArgs) (CampaignResolver, error)
-	PublishCampaign(ctx context.Context, args *PublishCampaignArgs) (CampaignResolver, error)
 	PublishChangeset(ctx context.Context, args *PublishChangesetArgs) (*EmptyResponse, error)
 	SyncChangeset(ctx context.Context, args *SyncChangesetArgs) (*EmptyResponse, error)
 
@@ -148,10 +143,6 @@ func (defaultCampaignsResolver) RetryCampaign(ctx context.Context, args *RetryCa
 }
 
 func (defaultCampaignsResolver) CloseCampaign(ctx context.Context, args *CloseCampaignArgs) (CampaignResolver, error) {
-	return nil, campaignsOnlyInEnterprise
-}
-
-func (defaultCampaignsResolver) PublishCampaign(ctx context.Context, args *PublishCampaignArgs) (CampaignResolver, error) {
 	return nil, campaignsOnlyInEnterprise
 }
 
@@ -217,7 +208,6 @@ type CampaignResolver interface {
 	PatchSet(ctx context.Context) (PatchSetResolver, error)
 	Status(context.Context) (BackgroundProcessStatus, error)
 	ClosedAt() *DateTime
-	PublishedAt(ctx context.Context) (*DateTime, error)
 	Patches(ctx context.Context, args *graphqlutil.ConnectionArgs) PatchConnectionResolver
 	DiffStat(ctx context.Context) (*DiffStat, error)
 }
