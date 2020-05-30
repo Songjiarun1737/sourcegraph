@@ -15,7 +15,6 @@ import {
     deleteCampaign,
     createCampaign,
     closeCampaign,
-    publishCampaign,
     fetchPatchSetById,
 } from './backend'
 import { useError, useObservable } from '../../../../../shared/src/util/useObservable'
@@ -45,7 +44,7 @@ import { PatchSetPatches } from './patches/PatchSetPatches'
 import { CampaignBranchField } from './form/CampaignBranchField'
 import { repeatUntil } from '../../../../../shared/src/util/rxjs/repeatUntil'
 
-export type CampaignUIMode = 'viewing' | 'editing' | 'saving' | 'deleting' | 'closing' | 'publishing'
+export type CampaignUIMode = 'viewing' | 'editing' | 'saving' | 'deleting' | 'closing'
 
 interface Campaign
     extends Pick<
@@ -58,7 +57,6 @@ interface Campaign
         | 'changesetCountsOverTime'
         | 'createdAt'
         | 'updatedAt'
-        | 'publishedAt'
         | 'closedAt'
         | 'viewerCanAdminister'
         | 'branch'
@@ -243,47 +241,10 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
     const specifyingBranchAllowed =
         // on campaign creation
         (!campaign && patchSet) ||
-        // or when it's not yet published and no changesets have been published or are being published as well
+        // or when no changesets have been published or are being published as well
         (campaign &&
-            !campaign.publishedAt &&
             campaign.changesets.totalCount === 0 &&
             campaign.status.state !== GQL.BackgroundProcessState.PROCESSING)
-
-    const onDraft: React.FormEventHandler = async event => {
-        event.preventDefault()
-        setMode('saving')
-        try {
-            const createdCampaign = await createCampaign({
-                name,
-                description,
-                namespace: authenticatedUser.id,
-                patchSet: patchSet ? patchSet.id : undefined,
-                branch: specifyingBranchAllowed ? branch : undefined,
-                draft: true,
-            })
-            unblockHistoryRef.current()
-            history.push(`/campaigns/${createdCampaign.id}`)
-            setMode('viewing')
-            setAlertError(undefined)
-            campaignUpdates.next()
-        } catch (error) {
-            setMode('editing')
-            setAlertError(asError(error))
-        }
-    }
-
-    const onPublish = async (): Promise<void> => {
-        setMode('publishing')
-        try {
-            await publishCampaign(campaign!.id)
-            setAlertError(undefined)
-            campaignUpdates.next()
-        } catch (error) {
-            setAlertError(asError(error))
-        } finally {
-            setMode('viewing')
-        }
-    }
 
     const onSubmit: React.FormEventHandler = async event => {
         event.preventDefault()
@@ -401,7 +362,7 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
             />
             {alertError && <ErrorAlert error={alertError} history={history} />}
             {campaign && !patchSet && !['saving', 'editing'].includes(mode) && (
-                <CampaignStatus campaign={campaign} onPublish={onPublish} afterRetry={afterRetry} history={history} />
+                <CampaignStatus campaign={campaign} afterRetry={afterRetry} history={history} />
             )}
             <Form id={campaignFormID} onSubmit={onSubmit} onReset={onCancel} className="e2e-campaign-form">
                 {['saving', 'editing'].includes(mode) && (
@@ -503,19 +464,6 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
                 {!campaign && (
                     <>
                         <div className="mt-2">
-                            {/* When creating from a patch set, allow draft campaigns */}
-                            {patchSet && (
-                                <button
-                                    type="submit"
-                                    form={campaignFormID}
-                                    className="btn btn-secondary mr-1"
-                                    // todo: doesn't trigger form validation
-                                    onClick={onDraft}
-                                    disabled={mode !== 'editing'}
-                                >
-                                    Create draft
-                                </button>
-                            )}
                             <button
                                 type="submit"
                                 form={campaignFormID}

@@ -15,7 +15,7 @@ import classNames from 'classnames'
 import { PatchNode } from './patches/PatchNode'
 
 interface Props extends ThemeProps {
-    campaign: Pick<GQL.ICampaign, 'id' | 'publishedAt'> & {
+    campaign: Pick<GQL.ICampaign, 'id'> & {
         changesets: Pick<GQL.ICampaign['changesets'], 'totalCount'>
         patches: Pick<GQL.ICampaign['patches'], 'totalCount'>
     }
@@ -147,9 +147,7 @@ export const CampaignUpdateDiff: React.FunctionComponent<Props> = ({
         patches.nodes
     )
 
-    const newDraftCount = !campaign.publishedAt
-        ? changed.length - (campaign.changesets.totalCount - deleted.length) + added.length
-        : 0
+    const newDraftCount = changed.length - (campaign.changesets.totalCount - deleted.length) + added.length
     return (
         <div className={className}>
             <h3 className="mt-4 mb-2">Preview of changes</h3>
@@ -159,10 +157,8 @@ export const CampaignUpdateDiff: React.FunctionComponent<Props> = ({
                 {campaign.changesets.totalCount} published, {campaign.patches.totalCount}{' '}
                 {pluralize('draft', campaign.patches.totalCount)}), after update it will have{' '}
                 {patchSet.patches.totalCount} {pluralize('changeset', patchSet.patches.totalCount)} (
-                {campaign.publishedAt
-                    ? unmodified.length + changed.length - deleted.length + added.length
-                    : campaign.changesets.totalCount - deleted.length}{' '}
-                published, {newDraftCount} {pluralize('draft', newDraftCount)}):
+                {unmodified.length + changed.length - deleted.length + added.length} published, {newDraftCount}{' '}
+                {pluralize('draft', newDraftCount)}):
             </p>
             <TabsWithLocalStorageViewStatePersistence
                 storageKey="campaignUpdateDiffTabs"
