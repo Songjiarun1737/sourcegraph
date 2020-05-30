@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/keegancsmith/sqlf"
@@ -12,13 +11,18 @@ import (
 	"github.com/sourcegraph/sourcegraph/internal/sqliteutil"
 )
 
+type ExecableDB interface {
+	dbutil.DB
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
 type Store struct {
-	db dbutil.DB
+	db ExecableDB
 }
 
 var _ sqliteutil.Execable = &Store{}
 
-func New(db dbutil.DB) *Store {
+func New(db ExecableDB) *Store {
 	return &Store{db: db}
 }
 
@@ -26,16 +30,16 @@ func (s *Store) Query(ctx context.Context, query *sqlf.Query) (*sql.Rows, error)
 	return s.db.QueryContext(ctx, query.Query(sqlf.SimpleBindVar), query.Args()...)
 }
 
+func (s *Store) Exec(ctx context.Context, query *sqlf.Query) (sql.Result, error) {
+	return s.db.ExecContext(ctx, query.Query(sqlf.SimpleBindVar), query.Args()...)
+}
+
 //
 //
 
 func (s *Store) ExecAll(ctx context.Context, queries ...*sqlf.Query) error {
 	for _, query := range queries {
-		// NOTE: NEED TO HAVE ACTUAL EXEC, CANNOT CREATE TABLE WITH QUERY
-		fmt.Printf("DO QUERY %s\n", query)
-		// TODO - need to dispose of rows?
-		if _, err := s.Query(ctx, query); err != nil {
-			fmt.Printf("NOP#: %v\n", err)
+		if _, err := s.Exec(ctx, query); err != nil {
 			return err
 		}
 	}
@@ -45,9 +49,7 @@ func (s *Store) ExecAll(ctx context.Context, queries ...*sqlf.Query) error {
 
 // TODO - rework this interface
 func (s *Store) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	// TODO - need to dispose of rows?
-	_, err := s.Query(ctx, sqlf.Sprintf(query, args...))
-	return nil, err
+	return s.db.ExecContext(ctx, query, args...)
 }
 
 //

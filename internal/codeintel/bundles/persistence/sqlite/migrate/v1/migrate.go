@@ -13,6 +13,6 @@ func Migrate(ctx context.Context, s *store.Store, serializer serialization.Seria
 	return s.ExecAll(
 		ctx,
 		sqlf.Sprintf(`CREATE TABLE schema_version ("version" TEXT NOT NULL)`),
-		sqlf.Sprintf(`INSERT INTO schema_version (version) VALUES (?);`, "v00001"),
+		sqlf.Sprintf(`INSERT INTO schema_version (version) VALUES (%s);`, "v00001"),
 	)
 }
