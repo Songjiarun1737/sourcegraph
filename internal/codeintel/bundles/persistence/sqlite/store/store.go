@@ -31,6 +31,7 @@ func (s *Store) Query(ctx context.Context, query *sqlf.Query) (*sql.Rows, error)
 
 func (s *Store) ExecAll(ctx context.Context, queries ...*sqlf.Query) error {
 	for _, query := range queries {
+		// NOTE: NEED TO HAVE ACTUAL EXEC, CANNOT CREATE TABLE WITH QUERY
 		fmt.Printf("DO QUERY %s\n", query)
 		// TODO - need to dispose of rows?
 		if _, err := s.Query(ctx, query); err != nil {
