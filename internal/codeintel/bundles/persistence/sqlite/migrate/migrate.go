@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/keegancsmith/sqlf"
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/serialization"
 	v0 "github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/migrate/v0"
 	v1 "github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/migrate/v1"
 	v2 "github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/migrate/v2"
 	v3 "github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/migrate/v3"
 	v4 "github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/migrate/v4"
+	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/store"
 )
 
 var migrations = []struct {
 	Version       string
-	MigrationFunc func(ctx context.Context, db *sqlx.DB, serializer serialization.Serializer) error
+	MigrationFunc func(ctx context.Context, s *store.Store, serializer serialization.Serializer) error
 }{
 	{"v00000", v0.Migrate},
 	{"v00001", v1.Migrate},
@@ -28,13 +29,15 @@ var migrations = []struct {
 var UnknownSchemaVersion = migrations[0].Version
 var CurrentSchemaVersion = migrations[len(migrations)-1].Version
 
-func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializer) error {
-	version, err := getVersion(ctx, db)
+func Migrate(ctx context.Context, s *store.Store, serializer serialization.Serializer) error {
+	version, err := getVersion(ctx, s)
 	if err != nil {
 		return err
 	}
 
+	//
 	// TODO - should copy file, replace, etc
+	//
 
 	found := false
 	for _, migration := range migrations {
@@ -46,7 +49,7 @@ func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializ
 			continue
 		}
 
-		if err := migration.MigrationFunc(ctx, db, serializer); err != nil {
+		if err := migration.MigrationFunc(ctx, s, serializer); err != nil {
 			return err
 		}
 	}
@@ -55,21 +58,21 @@ func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializ
 		return fmt.Errorf("unrecognized schema version %s", version)
 	}
 
-	if _, err := db.ExecContext(ctx, "UPDATE schema_version SET version = ?", CurrentSchemaVersion); err != nil {
-		return err
-	}
-
-	return nil
+	return s.ExecAll(ctx, sqlf.Sprintf("UPDATE schema_version SET version = %s", CurrentSchemaVersion))
 }
 
-func getVersion(ctx context.Context, db *sqlx.DB) (version string, _ error) {
-	if err := db.QueryRowContext(ctx, "SELECT version FROM schema_version LIMIT 1").Scan(&version); err != nil {
+func getVersion(ctx context.Context, s *store.Store) (string, error) {
+	version, exists, err := store.ScanFirstString(s.Query(ctx, sqlf.Sprintf("SELECT version FROM schema_version LIMIT 1")))
+	if err != nil {
 		// TODO - better matching
 		if strings.Contains(err.Error(), "no such table: schema_version") {
 			return UnknownSchemaVersion, nil
 		}
 
 		return "", err
+	}
+	if !exists {
+		return "", fmt.Errorf("No version in table")
 	}
 
 	return version, nil

@@ -3,23 +3,18 @@ package v4
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/keegancsmith/sqlf"
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/serialization"
+	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/store"
 )
 
-func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializer) error {
-	if _, err := db.ExecContext(ctx, `CREATE TABLE t_meta (num_result_chunks int NOT NULL)`); err != nil {
-		return err
-	}
-	if _, err := db.ExecContext(ctx, `INSERT INTO t_meta (num_result_chunks) SELECT numResultChunks FROM meta`); err != nil {
-		return err
-	}
-	if _, err := db.ExecContext(ctx, `DROP TABLE meta`); err != nil {
-		return err
-	}
-	if _, err := db.ExecContext(ctx, `ALTER TABLE t_meta RENAME TO meta`); err != nil {
-		return err
-	}
-
-	return nil
+// Migrate v4: Rename meta.numResultChunks to meta.num_result_chunks and drop the version columns.
+func Migrate(ctx context.Context, s *store.Store, serializer serialization.Serializer) error {
+	return s.ExecAll(
+		ctx,
+		sqlf.Sprintf(`CREATE TABLE t_meta (num_result_chunks int NOT NULL)`),
+		sqlf.Sprintf(`INSERT INTO t_meta (num_result_chunks) SELECT numResultChunks FROM meta`),
+		sqlf.Sprintf(`DROP TABLE meta`),
+		sqlf.Sprintf(`ALTER TABLE t_meta RENAME TO meta`),
+	)
 }

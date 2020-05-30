@@ -3,10 +3,12 @@ package v0
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/serialization"
+	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/store"
 )
 
-func Migrate(ctx context.Context, db *sqlx.DB, serializer serialization.Serializer) error {
+// Migrate v0: A no-op migration that serves as the base of all "legacy" (un-versioned)
+// schema versions as a place to uniformly begin the migration process.
+func Migrate(ctx context.Context, s *store.Store, serializer serialization.Serializer) error {
 	return nil
 }
