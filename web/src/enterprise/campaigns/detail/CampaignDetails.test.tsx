@@ -112,7 +112,7 @@ describe('CampaignDetails', () => {
                     publishedAt: '2020-01-01',
                     closedAt: null,
                     diffStat: {
-                        __typename: 'IDiffStat' as const,
+                        __typename: 'DiffStat' as const,
                         added: 5,
                         changed: 3,
                         deleted: 2,
