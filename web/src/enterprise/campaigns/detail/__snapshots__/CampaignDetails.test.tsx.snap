@@ -288,6 +288,8 @@ Array [
         },
       }
     }
+    queryPatchFileDiffs={[Function]}
+    queryPatchesFromPatchSet={[Function]}
   />,
 ]
 `;
@@ -595,6 +597,8 @@ Array [
         "state": undefined,
       }
     }
+    queryPatchFileDiffs={[Function]}
+    queryPatchesFromCampaign={[Function]}
   />,
   <CampaignChangesets
     campaign={
@@ -702,6 +706,7 @@ Array [
         "state": undefined,
       }
     }
+    queryChangesets={[Function]}
     telemetryService={
       Object {
         "log": [Function],
@@ -974,6 +979,8 @@ Array [
         "state": undefined,
       }
     }
+    queryPatchFileDiffs={[Function]}
+    queryPatchesFromCampaign={[Function]}
   />,
   <CampaignChangesets
     campaign={
@@ -1081,6 +1088,7 @@ Array [
         "state": undefined,
       }
     }
+    queryChangesets={[Function]}
     telemetryService={
       Object {
         "log": [Function],
@@ -1443,6 +1451,8 @@ Array [
         "state": undefined,
       }
     }
+    queryPatchFileDiffs={[Function]}
+    queryPatchesFromCampaign={[Function]}
   />,
   <CampaignChangesets
     campaign={
@@ -1550,6 +1560,7 @@ Array [
         "state": undefined,
       }
     }
+    queryChangesets={[Function]}
     telemetryService={
       Object {
         "log": [Function],

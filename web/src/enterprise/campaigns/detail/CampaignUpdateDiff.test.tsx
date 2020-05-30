@@ -39,6 +39,7 @@ describe('CampaignUpdateDiff', () => {
                                 nodes: [{ __typename: 'Patch', id: '2', repository: { id: 'match1' } }],
                             }) as any
                         }
+                        queryPatchFileDiffs={() => of({}) as any}
                     />
                 )
                 .toJSON()
@@ -75,6 +76,7 @@ describe('CampaignUpdateDiff', () => {
                         nodes: [{ __typename: 'Patch', id: '2', repository: { id: 'match1' } }],
                     }) as any
                 }
+                queryPatchFileDiffs={() => of({}) as any}
             />
         )
         setTimeout(() => {
