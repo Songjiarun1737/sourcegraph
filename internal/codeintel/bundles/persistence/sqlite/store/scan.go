@@ -29,7 +29,7 @@ func ScanInts(rows *sql.Rows, err error) ([]int, error) {
 		values = append(values, value)
 	}
 
-	return values, nil
+	return values, nil // TODO(efritz) need to close rows
 }
 
 func ScanFirstInt(rows *sql.Rows, err error) (int, bool, error) {

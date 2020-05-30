@@ -29,7 +29,7 @@ var migrations = []struct {
 var UnknownSchemaVersion = migrations[0].Version
 var CurrentSchemaVersion = migrations[len(migrations)-1].Version
 
-func Migrate(ctx context.Context, s *store.Store, serializer serialization.Serializer) error {
+func Migrate(ctx context.Context, s *store.Store, serializer serialization.Serializer) (err error) {
 	version, err := getVersion(ctx, s)
 	if err != nil {
 		return err
@@ -38,6 +38,15 @@ func Migrate(ctx context.Context, s *store.Store, serializer serialization.Seria
 	//
 	// TODO - should copy file, replace, etc
 	//
+
+	// TODO - does this work fine?
+	tx, err := s.Transact(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = tx.Done(err)
+	}()
 
 	found := false
 	for _, migration := range migrations {
