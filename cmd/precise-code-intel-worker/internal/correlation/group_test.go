@@ -73,8 +73,9 @@ func TestConvert(t *testing.T) {
 	}
 
 	expectedBundleData := &GroupedBundleData{
-		LSIFVersion:     "0.4.3",
-		NumResultChunks: 1,
+		Meta: types.MetaData{
+			NumResultChunks: 1,
+		},
 		Documents: map[string]types.DocumentData{
 			"foo.go": {
 				Ranges: map[types.ID]types.RangeData{

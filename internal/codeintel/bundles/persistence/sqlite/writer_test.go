@@ -21,7 +21,7 @@ func TestWrite(t *testing.T) {
 	ctx := context.Background()
 	filename := filepath.Join(tempDir, "test.db")
 
-	writer, err := NewWriter(filename)
+	writer, err := NewWriter(context.Background(), filename)
 	if err != nil {
 		t.Fatalf("unexpected error while opening writer: %s", err)
 	}
@@ -114,14 +114,11 @@ func TestWrite(t *testing.T) {
 		t.Fatalf("unexpected error while writing references: %s", err)
 	}
 
-	if err := writer.Flush(ctx); err != nil {
-		t.Fatalf("unexpected error flushing writer: %s", err)
-	}
-	if err := writer.Close(); err != nil {
+	if err := writer.Close(nil); err != nil {
 		t.Fatalf("unexpected error closing writer: %s", err)
 	}
 
-	reader, err := NewReader(filename)
+	reader, err := NewReader(context.Background(), filename)
 	if err != nil {
 		t.Fatalf("unexpected error opening database: %s", err)
 	}

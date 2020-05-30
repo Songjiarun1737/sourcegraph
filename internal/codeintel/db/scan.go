@@ -7,14 +7,8 @@ import (
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/types"
 )
 
-// scanner is the common interface shared by *sql.Row and *sql.Rows.
-type scanner interface {
-	// Scan copies the values of the current row into the values pointed at by dest.
-	Scan(dest ...interface{}) error
-}
-
 // scanDump populates a Dump value from the given scanner.
-func scanDump(scanner scanner) (dump Dump, err error) {
+func scanDump(scanner *sql.Rows) (dump Dump, err error) {
 	err = scanner.Scan(
 		&dump.ID,
 		&dump.Commit,
@@ -65,7 +59,7 @@ func scanFirstDump(rows *sql.Rows, err error) (Dump, bool, error) {
 }
 
 // scanUpload populates an Upload value from the given scanner.
-func scanUpload(scanner scanner) (upload Upload, err error) {
+func scanUpload(scanner *sql.Rows) (upload Upload, err error) {
 	var rawUploadedParts []sql.NullInt32
 	err = scanner.Scan(
 		&upload.ID,
@@ -132,7 +126,7 @@ func scanFirstUploadDequeue(rows *sql.Rows, err error) (interface{}, bool, error
 }
 
 // scanPackageReference populates a package reference value from the given scanner.
-func scanPackageReference(scanner scanner) (reference types.PackageReference, err error) {
+func scanPackageReference(scanner *sql.Rows) (reference types.PackageReference, err error) {
 	err = scanner.Scan(&reference.DumpID, &reference.Scheme, &reference.Name, &reference.Version, &reference.Filter)
 	return reference, err
 }
@@ -159,7 +153,7 @@ func scanPackageReferences(rows *sql.Rows, err error) ([]types.PackageReference,
 }
 
 // scanString populates a string value from the given scanner.
-func scanString(scanner scanner) (value string, err error) {
+func scanString(scanner *sql.Rows) (value string, err error) {
 	err = scanner.Scan(&value)
 	return value, err
 }
@@ -197,7 +191,7 @@ func scanFirstString(rows *sql.Rows, err error) (string, bool, error) {
 }
 
 // scanInt populates an integer value from the given scanner.
-func scanInt(scanner scanner) (value int, err error) {
+func scanInt(scanner *sql.Rows) (value int, err error) {
 	err = scanner.Scan(&value)
 	return value, err
 }
@@ -235,7 +229,7 @@ func scanFirstInt(rows *sql.Rows, err error) (int, bool, error) {
 }
 
 // scanState populates an integer and string from the given scanner.
-func scanState(scanner scanner) (id int, state string, err error) {
+func scanState(scanner *sql.Rows) (id int, state string, err error) {
 	err = scanner.Scan(&id, &state)
 	return id, state, err
 }
@@ -262,7 +256,7 @@ func scanStates(rows *sql.Rows, err error) (map[int]string, error) {
 }
 
 // scanVisibility populates an integer and boolean from the given scanner.
-func scanVisibility(scanner scanner) (id int, visibleAtTip bool, err error) {
+func scanVisibility(scanner *sql.Rows) (id int, visibleAtTip bool, err error) {
 	err = scanner.Scan(&id, &visibleAtTip)
 	return id, visibleAtTip, err
 }
@@ -290,7 +284,7 @@ func scanVisibilities(rows *sql.Rows, err error) (map[int]bool, error) {
 }
 
 // scanCommit populates a pair of strings from the given scanner.
-func scanCommit(scanner scanner) (commit string, parentCommit *string, err error) {
+func scanCommit(scanner *sql.Rows) (commit string, parentCommit *string, err error) {
 	err = scanner.Scan(&commit, &parentCommit)
 	return commit, parentCommit, err
 }
@@ -324,7 +318,7 @@ func scanCommits(rows *sql.Rows, err error) (map[string][]string, error) {
 }
 
 // scanIndexableRepository populates an IndexableRepository value from the given scanner.
-func scanIndexableRepository(scanner scanner) (indexableRepository IndexableRepository, err error) {
+func scanIndexableRepository(scanner *sql.Rows) (indexableRepository IndexableRepository, err error) {
 	err = scanner.Scan(
 		&indexableRepository.RepositoryID,
 		&indexableRepository.SearchCount,
@@ -357,7 +351,7 @@ func scanIndexableRepositories(rows *sql.Rows, err error) ([]IndexableRepository
 }
 
 // scanIndex populates an Index value from the given scanner.
-func scanIndex(scanner scanner) (index Index, err error) {
+func scanIndex(scanner *sql.Rows) (index Index, err error) {
 	err = scanner.Scan(
 		&index.ID,
 		&index.Commit,
@@ -411,7 +405,7 @@ func scanFirstIndexDequeue(rows *sql.Rows, err error) (interface{}, bool, error)
 }
 
 // scanRepoUsageStatistics populates a RepoUsageStatistics from the given scanner.
-func scanRepoUsageStatistics(scanner scanner) (stats RepoUsageStatistics, err error) {
+func scanRepoUsageStatistics(scanner *sql.Rows) (stats RepoUsageStatistics, err error) {
 	err = scanner.Scan(&stats.RepositoryID, &stats.SearchCount, &stats.PreciseCount)
 	return stats, err
 }
