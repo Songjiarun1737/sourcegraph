@@ -2437,6 +2437,8 @@ func countChangesetJobsQuery(opts *CountChangesetJobsOpts) *sqlf.Query {
 
 // GetLatestChangesetJobCreatedAt returns the most recent created_at time for all changeset jobs
 // for a campaign. But only if they have all been created, one for each Patch belonging to the PatchSet attached to the Campaign. If not, it returns a zero time.Time.
+//
+// TODO(sqs): can maybe remove this as unused in campaign-patchset-flow
 func (s *Store) GetLatestChangesetJobCreatedAt(ctx context.Context, campaignID int64) (time.Time, error) {
 	q := sqlf.Sprintf(getLatestChangesetJobPublishedAtFmtstr, campaignID)
 	var createdAt time.Time

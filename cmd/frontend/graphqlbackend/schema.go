@@ -617,6 +617,12 @@ type Campaign implements Node {
 
     # The diff stat for all the patches and changesets in the campaign.
     diffStat: DiffStat!
+
+    # Whether the viewer can add or remove existing changesets to/from this campaign.
+    viewerCanAddRemoveExistingChangesets: Boolean!
+
+    # Whether the viewer can update the campaign's patches.
+    viewerCanUpdatePatches: Boolean!
 }
 
 # The counts of changesets in certain states at a specific point in time.

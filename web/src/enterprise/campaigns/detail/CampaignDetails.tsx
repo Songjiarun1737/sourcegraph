@@ -47,51 +47,18 @@ import { CampaignPatches } from './patches/CampaignPatches'
 import { PatchSetPatches } from './patches/PatchSetPatches'
 import { CampaignBranchField } from './form/CampaignBranchField'
 import { repeatUntil } from '../../../../../shared/src/util/rxjs/repeatUntil'
+import { MinimalCampaign, MinimalPatchSet } from './CampaignArea'
 
-export type CampaignUIMode = 'viewing' | 'editing' | 'saving' | 'deleting' | 'closing'
-
-interface Campaign
-    extends Pick<
-        GQL.ICampaign,
-        | '__typename'
-        | 'id'
-        | 'name'
-        | 'description'
-        | 'author'
-        | 'changesetCountsOverTime'
-        | 'createdAt'
-        | 'updatedAt'
-        | 'closedAt'
-        | 'viewerCanAdminister'
-        | 'branch'
-    > {
-    patchSet: Pick<GQL.IPatchSet, 'id'> | null
-    changesets: Pick<GQL.ICampaign['changesets'], 'totalCount'>
-    openChangesets: Pick<GQL.ICampaign['openChangesets'], 'totalCount'>
-    patches: Pick<GQL.ICampaign['patches'], 'totalCount'>
-    status: Pick<GQL.ICampaign['status'], 'completedCount' | 'pendingCount' | 'errors' | 'state'>
-    diffStat: Pick<GQL.ICampaign['diffStat'], 'added' | 'deleted' | 'changed'>
-}
-
-interface PatchSet extends Pick<GQL.IPatchSet, '__typename' | 'id'> {
-    diffStat: Pick<GQL.IPatchSet['diffStat'], 'added' | 'deleted' | 'changed'>
-    patches: Pick<GQL.IPatchSet['patches'], 'totalCount'>
-}
+export type CampaignUIMode = 'viewing' | 'deleting' | 'closing'
 
 interface Props extends ThemeProps, ExtensionsControllerProps, PlatformContextProps, TelemetryProps {
-    /**
-     * The campaign ID.
-     * If not given, will display a creation form.
-     */
-    campaignID?: GQL.ID
+    campaign: MinimalCampaign
     authenticatedUser: Pick<GQL.IUser, 'id' | 'username' | 'avatarURL'>
     history: H.History
     location: H.Location
 
     /** For testing only. */
-    _fetchCampaignById?: typeof fetchCampaignById | ((campaign: GQL.ID) => Observable<Campaign | null>)
-    /** For testing only. */
-    _fetchPatchSetById?: typeof fetchPatchSetById | ((patchSet: GQL.ID) => Observable<PatchSet | null>)
+    _fetchPatchSetById?: typeof fetchPatchSetById | ((patchSet: GQL.ID) => Observable<MinimalPatchSet | null>)
     /** For testing only. */
     _queryPatchesFromCampaign?: typeof queryPatchesFromCampaign
     /** For testing only. */
@@ -108,7 +75,7 @@ interface Props extends ThemeProps, ExtensionsControllerProps, PlatformContextPr
  * The area for a single campaign.
  */
 export const CampaignDetails: React.FunctionComponent<Props> = ({
-    campaignID,
+    campaign,
     history,
     location,
     authenticatedUser,
@@ -116,67 +83,16 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
     extensionsController,
     platformContext,
     telemetryService,
-    _fetchCampaignById = fetchCampaignById,
     _fetchPatchSetById = fetchPatchSetById,
     _queryPatchesFromCampaign = queryPatchesFromCampaign,
     _queryPatchesFromPatchSet = queryPatchesFromPatchSet,
     _queryPatchFileDiffs = queryPatchFileDiffs,
     _queryChangesets = queryChangesets,
-    _noSubject = false,
 }) => {
-    // State for the form in editing mode
-    const [name, setName] = useState<string>('')
-    const [description, setDescription] = useState<string>('')
-    const [branch, setBranch] = useState<string>('')
-    const [branchModified, setBranchModified] = useState<boolean>(false)
-
-    // For errors during fetching
-    const triggerError = useError()
-
     /** Retrigger campaign fetching */
     const campaignUpdates = useMemo(() => new Subject<void>(), [])
     /** Retrigger changeset fetching */
     const changesetUpdates = useMemo(() => new Subject<void>(), [])
-
-    const [campaign, setCampaign] = useState<Campaign | null>()
-    useEffect(() => {
-        if (!campaignID) {
-            return
-        }
-        // on the very first fetch, a reload of the changesets is not required
-        let isFirstCampaignFetch = true
-
-        // Fetch campaign if ID was given
-        const subscription = merge(of(undefined), _noSubject ? new Observable<void>() : campaignUpdates)
-            .pipe(
-                switchMap(() =>
-                    _fetchCampaignById(campaignID).pipe(
-                        // repeat fetching the campaign as long as the state is still processing
-                        repeatUntil(campaign => campaign?.status?.state !== GQL.BackgroundProcessState.PROCESSING, {
-                            delay: 2000,
-                        })
-                    )
-                ),
-                distinctUntilChanged((a, b) => isEqual(a, b))
-            )
-            .subscribe({
-                next: fetchedCampaign => {
-                    setCampaign(fetchedCampaign)
-                    if (fetchedCampaign) {
-                        setName(fetchedCampaign.name)
-                        setDescription(fetchedCampaign.description ?? '')
-                        setBranch(fetchedCampaign.branch ?? '')
-                        setBranchModified(false)
-                    }
-                    if (!isFirstCampaignFetch) {
-                        changesetUpdates.next()
-                    }
-                    isFirstCampaignFetch = false
-                },
-                error: triggerError,
-            })
-        return () => subscription.unsubscribe()
-    }, [campaignID, triggerError, changesetUpdates, campaignUpdates, _fetchCampaignById, _noSubject])
 
     const [mode, setMode] = useState<CampaignUIMode>(campaignID ? 'viewing' : 'editing')
 
@@ -190,18 +106,6 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
         }
     }, [patchSetID])
 
-    // To unblock the history after leaving edit mode
-    const unblockHistoryRef = useRef<H.UnregisterCallback>(noop)
-    useEffect(() => {
-        if (!campaignID && patchSetID === null) {
-            unblockHistoryRef.current()
-            unblockHistoryRef.current = history.block('Do you want to discard this campaign?')
-        }
-        // Note: the current() method gets dynamically reassigned,
-        // therefor we can't return it directly.
-        return () => unblockHistoryRef.current()
-    }, [campaignID, history, patchSetID])
-
     const patchSet = useObservable(
         useMemo(() => (!patchSetID ? NEVER : _fetchPatchSetById(patchSetID)), [patchSetID, _fetchPatchSetById])
     )
@@ -212,33 +116,6 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
         changesetUpdates.next()
     }, [campaignUpdates, changesetUpdates])
 
-    const onNameChange = useCallback(
-        (newName: string): void => {
-            if (!branchModified) {
-                setBranch(slugify(newName, { remove: /[!"'()*+.:@\\^~]/g, lower: true }))
-            }
-            setName(newName)
-        },
-        [branchModified]
-    )
-
-    const onBranchChange = useCallback((newValue: string): void => {
-        setBranch(newValue)
-        setBranchModified(true)
-    }, [])
-
-    // Is loading
-    if ((campaignID && campaign === undefined) || (patchSetID && patchSet === undefined)) {
-        return (
-            <div className="text-center">
-                <LoadingSpinner className="icon-inline mx-auto my-4" />
-            </div>
-        )
-    }
-    // Campaign was not found
-    if (campaign === null) {
-        return <HeroPage icon={AlertCircleIcon} title="Campaign not found" />
-    }
     // Patch set was not found
     if (patchSet === null) {
         return <HeroPage icon={AlertCircleIcon} title="Patch set not found" />
@@ -262,73 +139,13 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
             campaign.changesets.totalCount === 0 &&
             campaign.status.state !== GQL.BackgroundProcessState.PROCESSING)
 
-    const onSubmit: React.FormEventHandler = async event => {
-        event.preventDefault()
-        setMode('saving')
-        try {
-            if (campaignID) {
-                const newCampaign = await updateCampaign({
-                    id: campaignID,
-                    name,
-                    description,
-                    patchSet: patchSetID ?? undefined,
-                    branch: specifyingBranchAllowed ? branch : undefined,
-                })
-                setCampaign(newCampaign)
-                setName(newCampaign.name)
-                setDescription(newCampaign.description ?? '')
-                setBranch(newCampaign.branch ?? '')
-                setBranchModified(false)
-                unblockHistoryRef.current()
-                history.push(`/campaigns/${newCampaign.id}`)
-            } else {
-                const createdCampaign = await createCampaign({
-                    name,
-                    description,
-                    namespace: authenticatedUser.id,
-                    patchSet: patchSet ? patchSet.id : undefined,
-                    branch: specifyingBranchAllowed ? branch : undefined,
-                })
-                unblockHistoryRef.current()
-                history.push(`/campaigns/${createdCampaign.id}`)
-            }
-            setMode('viewing')
-            setAlertError(undefined)
-            campaignUpdates.next()
-        } catch (error) {
-            setMode('editing')
-            setAlertError(asError(error))
-        }
-    }
-
-    const discardChangesMessage = 'Do you want to discard your changes?'
-
-    const onEdit: React.MouseEventHandler = event => {
-        event.preventDefault()
-        unblockHistoryRef.current = history.block(discardChangesMessage)
-        setMode('editing')
-        setAlertError(undefined)
-    }
-
-    const onCancel: React.FormEventHandler = event => {
-        event.preventDefault()
-        if (!confirm(discardChangesMessage)) {
-            return
-        }
-        unblockHistoryRef.current()
-        // clear query params
-        history.replace(location.pathname)
-        setMode('viewing')
-        setAlertError(undefined)
-    }
-
     const onClose = async (closeChangesets: boolean): Promise<void> => {
         if (!confirm('Are you sure you want to close the campaign?')) {
             return
         }
         setMode('closing')
         try {
-            await closeCampaign(campaign!.id, closeChangesets)
+            await closeCampaign(campaign.id, closeChangesets)
             campaignUpdates.next()
         } catch (error) {
             setAlertError(asError(error))
@@ -343,7 +160,7 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
         }
         setMode('deleting')
         try {
-            await deleteCampaign(campaign!.id, closeChangesets)
+            await deleteCampaign(campaign.id, closeChangesets)
             history.push('/campaigns')
         } catch (error) {
             setAlertError(asError(error))
@@ -351,7 +168,7 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
         }
     }
 
-    const afterRetry = (updatedCampaign: Campaign): void => {
+    const afterRetry = (updatedCampaign: MinimalCampaign): void => {
         setCampaign(updatedCampaign)
         campaignUpdates.next()
     }
@@ -384,19 +201,6 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
                 {['saving', 'editing'].includes(mode) && (
                     <>
                         <h3>Details</h3>
-                        <CampaignTitleField value={name} onChange={onNameChange} disabled={mode === 'saving'} />
-                        <CampaignDescriptionField
-                            value={description}
-                            onChange={setDescription}
-                            disabled={mode === 'saving'}
-                        />
-                        {specifyingBranchAllowed && (
-                            <CampaignBranchField
-                                value={branch}
-                                onChange={onBranchChange}
-                                disabled={mode === 'saving'}
-                            />
-                        )}
                         {/* Existing non-manual campaign, but not updating with a new set of patches */}
                         {campaign && !!campaign.patchSet && !patchSet && (
                             <div className="card">
@@ -473,21 +277,6 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
                                 disabled={mode !== 'editing' || patchSet?.patches.totalCount === 0}
                             >
                                 Update
-                            </button>
-                        </div>
-                    </>
-                )}
-                {/* If campaign doesn't yet exist.. */}
-                {!campaign && (
-                    <>
-                        <div className="mt-2">
-                            <button
-                                type="submit"
-                                form={campaignFormID}
-                                className="btn btn-primary e2e-campaign-create-btn"
-                                disabled={mode !== 'editing' || patchSet?.patches.totalCount === 0}
-                            >
-                                Create campaign
                             </button>
                         </div>
                     </>
@@ -589,7 +378,7 @@ export const CampaignDetails: React.FunctionComponent<Props> = ({
                                 ))}
                             {totalChangesetCount > 0 && (
                                 <CampaignChangesets
-                                    campaign={campaign!}
+                                    campaign={campaign}
                                     changesetUpdates={changesetUpdates}
                                     campaignUpdates={campaignUpdates}
                                     queryChangesets={_queryChangesets}

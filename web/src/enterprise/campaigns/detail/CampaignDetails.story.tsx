@@ -43,7 +43,7 @@ const COMMON_CAMPAIGN_FIELDS: Pick<
     },
 }
 
-const SAMPLE_PatchConnection: GQL.IPatchConnection = {
+export const SAMPLE_PatchConnection: GQL.IPatchConnection = {
     __typename: 'PatchConnection' as const,
     nodes: [
         {
@@ -62,7 +62,7 @@ const SAMPLE_PatchConnection: GQL.IPatchConnection = {
     totalCount: 1,
 }
 
-const SAMPLE_FileDiffConnection: GQL.IFileDiffConnection = {
+export const SAMPLE_FileDiffConnection: GQL.IFileDiffConnection = {
     __typename: 'FileDiffConnection' as const,
     nodes: [
         {
@@ -94,7 +94,7 @@ const SAMPLE_FileDiffConnection: GQL.IFileDiffConnection = {
     rawDiff: 'abc',
 }
 
-const SAMPLE_ExternalChangesetConnection: GQL.IExternalChangesetConnection = {
+export const SAMPLE_ExternalChangesetConnection: GQL.IExternalChangesetConnection = {
     __typename: 'ExternalChangesetConnection' as const,
     nodes: [
         {
@@ -122,7 +122,7 @@ const SAMPLE_ExternalChangesetConnection: GQL.IExternalChangesetConnection = {
     totalCount: 1,
 }
 
-const SAMPLE_PatchSet: GQL.IPatchSet = {
+export const SAMPLE_PatchSet: GQL.IPatchSet = {
     __typename: 'PatchSet' as const,
     id: 'c',
     previewURL: 'https://example.com',
@@ -149,7 +149,7 @@ const SAMPLE_ChangesetCounts: GQL.IChangesetCounts[] = [
     { date: '2020-01-06', open: 0, merged: 4, openApproved: 0, total: 4 },
 ] as GQL.IChangesetCounts[]
 
-const { add } = storiesOf('CampaignDetails', module).addDecorator(story => (
+const { add } = storiesOf('Campaigns/CampaignDetails', module).addDecorator(story => (
     <>
         <style>{webStyles}</style>
         <div className="theme-light container mt-3">{story()}</div>
