@@ -15,10 +15,14 @@ import (
 	"github.com/sourcegraph/sourcegraph/internal/codeintel/bundles/persistence/sqlite/store"
 )
 
-var migrations = []struct {
+type MigrationFunc func(ctx context.Context, s *store.Store, serializer serialization.Serializer) error
+
+type MigrationSpec struct {
 	Version       string
-	MigrationFunc func(ctx context.Context, s *store.Store, serializer serialization.Serializer) error
-}{
+	MigrationFunc MigrationFunc
+}
+
+var migrations = []MigrationSpec{
 	{"v00000", v0.Migrate},
 	{"v00001", v1.Migrate},
 	{"v00002", v2.Migrate},
@@ -35,19 +39,6 @@ func Migrate(ctx context.Context, s *store.Store, serializer serialization.Seria
 		return err
 	}
 
-	//
-	// TODO - should copy file, replace, etc
-	//
-
-	// TODO - does this work fine?
-	tx, err := s.Transact(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = tx.Done(err)
-	}()
-
 	found := false
 	for _, migration := range migrations {
 		if migration.Version == version {
@@ -58,7 +49,7 @@ func Migrate(ctx context.Context, s *store.Store, serializer serialization.Seria
 			continue
 		}
 
-		if err := migration.MigrationFunc(ctx, s, serializer); err != nil {
+		if err := runMigration(ctx, s, serializer, migration.Version, migration.MigrationFunc); err != nil {
 			return err
 		}
 	}
@@ -67,7 +58,27 @@ func Migrate(ctx context.Context, s *store.Store, serializer serialization.Seria
 		return fmt.Errorf("unrecognized schema version %s", version)
 	}
 
-	return s.ExecAll(ctx, sqlf.Sprintf("UPDATE schema_version SET version = %s", CurrentSchemaVersion))
+	return nil
+}
+
+func runMigration(ctx context.Context, store *store.Store, serializer serialization.Serializer, version string, migrationFunc MigrationFunc) (err error) {
+	tx, err := store.Transact(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = tx.Done(err)
+	}()
+
+	if err := migrationFunc(ctx, tx, serializer); err != nil {
+		return err
+	}
+
+	if err := tx.ExecAll(ctx, sqlf.Sprintf("UPDATE schema_version SET version = %s", version)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getVersion(ctx context.Context, s *store.Store) (string, error) {
